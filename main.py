@@ -9,6 +9,7 @@ class Piece:
     time_sig = "unknown"
     mode = "unknown"
     first_tick = 1000000
+    beat_in_ticks = 0
 
     tot_notes = 0
 
@@ -35,8 +36,13 @@ class Piece:
     def signatures(self):
 
         pattern = self.pat
+        res = pattern.resolution
+        print (res)
         key_accumulator = [0]*12
         first_note = True
+        denominator = 0
+        numerator = 0
+
         for i in pattern:
             for j in i:
                 if str(type(j)) == "<class 'midi.events.NoteOnEvent'>" and j.data[1] != 0:
@@ -100,13 +106,80 @@ class Piece:
                     event_sigs.append([j.data[0], 2**j.data[1], j.tick])
         print (event_sigs)
 
-        if self.first_tick > 0 and len(event_sigs) > 1:
+        if  len(event_sigs) > 1 and self.first_tick >= event_sigs[1][2]:
             self.time_sig = event_sigs[1]
         else:
             self.time_sig = event_sigs[0]
 
-        print self.first_tick
+        #print self.first_tick
 
+        note_length = 0   # in ticks, including any trailing silence
+        note_lengths = []
+        start_gaps = []
+
+        for i in pattern:
+            start_gap = 0
+            for j in i:
+                if str(j).startswith("midi.Note"):
+                    if str(j).startswith("midi.NoteOn") and j.data[1] > 0:
+                        if len(note_lengths) == 0:
+                            start_gap = j.tick
+                        if note_length > 0:
+                            note_length += j.tick
+                            note_lengths.append(note_length)
+                            # print ("Appending" + str(note_length))
+                            note_length = 0
+                    else:
+                        note_length += j.tick
+
+            start_gaps.append(start_gap)
+
+        note_lengths.append(note_length)
+
+        note_length_count = {}
+        for i in note_lengths:
+            print (i)
+            if i in note_length_count:
+                note_length_count[i] += 1
+            else:
+                note_length_count[i] = 1
+
+        high_count_note_length = max(note_length_count, key=note_length_count.get)
+
+        if res + (res * 0.1) > high_count_note_length > res - (res * 0.1):
+            self.beat_in_ticks = res
+            denominator = 4
+        elif res/2 + (res/2 * 0.1) > high_count_note_length > res/2 - (res/2 * 0.1):
+            self.beat_in_ticks = res/2
+            denominator = 8
+        elif res*2 + (res*2 * 0.1) > high_count_note_length > res*2 - (res*2 * 0.1):
+            self.beat_in_ticks = res*2
+            denominator = 2
+        elif res/4 + (res/4 * 0.1) > high_count_note_length > res/4 - (res/4 * 0.1):
+            self.beat_in_ticks = res/4
+            denominator = 16
+        elif res/8 + (res/8 * 0.1) > high_count_note_length > res/8 - (res/8 * 0.1):
+            self.beat_in_ticks = res/8
+            denominator = 32
+
+        # print "*****************"
+        # print (denominator)
+
+        long_note = 0
+        for x in note_length_count:
+            if x > long_note:
+                long_note = x
+        numerator = long_note/self.beat_in_ticks
+        # print (numerator)
+
+        while numerator%2 == 0 and denominator % 2 == 0:
+            numerator = numerator/2
+            denominator = denominator/2
+        while numerator%2 == 0:
+            numerator = numerator/2
+        while numerator%3 == 0:
+            numerator = numerator/3
+        # print numerator, '/', denominator
 
 def main():
 
