@@ -1,8 +1,21 @@
 import midi
 import Tkinter
 import tkFileDialog
+import pygame
 
-# for keyboard play-in:
+class_inst = {
+    "Acoustic Grand Piano": 1,
+    "Harpsichord": 7,
+    "Orchestral Harp": 47,
+    "String Ensemble 1": 49,
+    "String Ensemble 2": 50,
+    "French Horn": 61,
+    "Oboe": 69,
+    "Flute": 74
+}
+
+
+# for keyboard play-in/playback:
 
 key_map = {
     'z': 36,  # C2 and up
@@ -117,6 +130,7 @@ class Piece:
     tot_notes = 0
 
     waltz = False
+    goal_key = "Major"
 
     keys = {
         0: "C",
@@ -138,14 +152,16 @@ class Piece:
         self.pat = midi.read_midifile(file_path)
         # print self.pat
 
-    def change_mode(self, change_to):
-        print ("Changing Mode . . .")
-        mode_pat = self.pat
+    def change_mode(self, change_to, pat):
+        print ("Changing Mode . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .")
+        # mode_pat = self.pat
         to = change_to
+        mode_pat = pat
         tonic = self.key_sig_num
         # print (tonic)
         # major to minor
-        if self.mode == "Major" and to == "minor":
+        # if self.mode == "Major" and to == "minor":
+        if to == "minor":
             print ("Major to minor")
             for i in mode_pat:
                 for j in i:
@@ -156,22 +172,32 @@ class Piece:
                             j.data[0] = j.data[0] - 1
             # print (str(self.file_path_) + "to_minor")
             print("writing . . . ")
-            midi.write_midifile("mode_changed2.mid", mode_pat)
+            # midi.write_midifile(out_file, mode_pat)
         if self.mode == "minor" and to == "Major":
             print ("minor to Major")
             for i in mode_pat:
                 for j in i:
-                    if str(type(j)) == "<class 'midi.events.NoteOnEvent'>" or str(
-                            type(j)) == "<class 'midi.events.NoteOffEvent'>":
+                    if str(type(j)) == "<class 'midi.events.NoteOnEvent'>" or \
+                            str(type(j)) == "<class 'midi.events.NoteOffEvent'>":
                         # print (j)
                         if (j.data[0] % 12) == ((tonic + 3) % 12) or (j.data[0] % 12) == ((tonic - 4) % 12):
                             j.data[0] = j.data[0] + 1
             # print (str(self.file_path_) + "to_minor")
-            midi.write_midifile("mode_changed.mid", mode_pat)
-
+            # midi.write_midifile(out_file, mode_pat)
+        return mode_pat
         # print mode_pat
 
     def signatures(self):
+        self.key_sig = "unknown"
+        self.key_sig_num = -1
+        self.time_sig = "unknown"
+        self.mode = "unknown"
+        self.first_tick = 1000000
+        self.beat_in_ticks = 0
+
+        self.tot_notes = 0
+
+        self.waltz = False
 
         key_votes = [-1] * 4  # first low note, last low note, most frequent, most frequent with dom
         vote_weights = [0.5, 1.2, 0.8, 1, 1]
@@ -251,7 +277,8 @@ class Piece:
                         track_pitches.append(j.data[0])
                         # print ("Appended" + str(j.data[0]))
                     else:
-                        print("Skipping percussion")
+                        # print("Skipping percussion")
+                        pass
                     self.tot_notes += 1
 
             if len(track_pitches) > 0:
@@ -463,7 +490,10 @@ class Piece:
         # checking for pentatonic modes:
         print ("Penta section")
         penta = False
+        print("Total notes: " + str(self.tot_notes))
         note_num_ave = self.tot_notes / 12
+        print("Total notes: " + str(self.tot_notes))
+        print("Ave is " + str(note_num_ave))
         split_freq = note_num_ave - note_num_ave * 0.7
 
         # pitch_numbers = sorted(key_accumulator)
@@ -611,52 +641,173 @@ class Piece:
         while numerator % 3 == 0 and numerator != 0:
             numerator = numerator / 3
         # print numerator, '/', denominator
-
+        print("FILE:")
+        print(self.file_path)
         print("*************************")
         print(self.key_sig + " " + self.mode)
         print(str(self.time_sig[0]) + "/" + str(self.time_sig[1]) + " time")
         print("*************************")
 
-
-def changevar():
-    global variable
-    variable = "Yep"
+        show_sigs()
 
 
-def printvar():
-    global variable
-    print(variable)
+    def rock_to_class(self):
+        new_pat = self.pat
+        is_strings = False
+        for c, i in enumerate(new_pat):
+            for j in i:
+                # print(str(j))
+                if str(type(j)) == "<class 'midi.events.NoteOnEvent'>" and j.data[1] != 0: # take out unpitched percussion
+                    if j.channel == 9:
+                        j.data[1] = 0
+                elif "ProgramChange" in str(j):
+                    print("ProgramChange")
+                    if j.data in class_inst.values():
+                        print ("found inst")
+                        # pass
+                    else:
+                        if j.data[0] < 25:
+                            j.data[0] = 1
+                        elif j.data[0] < 57:
+                            j.data[0] = 50
+                            is_strings = True
+                        elif j.data[0] < 81:
+                            j.data[0] = 61
+                        else:
+                            j.data[0] = 50
+                            is_strings = True
+        if not is_strings:
+            for c, i in enumerate(new_pat):
+                for j in i:
+                    if "ProgramChange" in str(j):
+                        print("ProgramChange")
+                        if j.data[0] < 81 and j.data[0] > 49:
+                            j.data[0] = 50
+
+        if self.mode == "Major" or self.mode == "Mixolydian" or self.mode == "Lydian":
+            print ("Call mode change")
+            new_pat = self.change_mode("minor", new_pat)
+
+        midi.write_midifile("rock_to_class.mid", new_pat)
+        play_class()
 
 
-variable = "Nope"
-# piece1 = None
-file_path = "Music/pass1.mid"
+first_load = True
 
 
-# def main():
 def load():
-    root.withdraw()
-    global file_path
-    global piece1
-    print(file_path)
+    global first_load
+    global piece
+    global sig
+    global play
+    global stop_b
+    global stop
+    global rock_class
+
+    try:
+        del piece
+        sig.destroy()
+        play.destroy()
+        rock_class.destroy()
+        first_load = False
+    except NameError:
+        first_load = True
+    if not first_load:
+        stop()
+        restart_b.grid_forget()
     file_path = tkFileDialog.askopenfilename()
-    piece1 = Piece(file_path)
-    print(file_path)
-    main = Tkinter.Toplevel()
+    piece = Piece(file_path)
+    play = Tkinter.Button(root, text="Play the MIDI!", command=show_controls)
+    sig = Tkinter.Button(root, text="Find key and time signatures", command=piece.signatures)
+    rock_class = Tkinter.Button(root, text="Classicalize this piece!", command=piece.rock_to_class)
+        # change_mode = Tkinter.Button(main, text="Change Var", command=piece1.change_mode())
+    sig.grid()
+    play.grid()
+    rock_class.grid()
+        # change_mode.grid()
+    # show_controls()
+    first_load = False
 
-    # change_mode = Tkinter.Button(main, text="Change Var", command=piece1.change_mode())
-    sig = Tkinter.Button(main, text="Find key and time signatures", command=piece1.signatures)
-    sig.pack()
-    # change_mode.pack()
 
-# root = Tkinter.Tk()
-# root.withdraw()
+def show_sigs():
+    global show_sigs_l
+    sig_text = "Looks like this piece is in " + piece.key_sig + " " + piece.mode + " and " + str(piece.time_sig[0]) \
+               + "/" + str(piece.time_sig[1]) + " time!"
+    show_sigs_l = Tkinter.Label(root, text=sig_text)
+    show_sigs_l.grid()
+
+def play_class():
+    global restart_b
+    global stop_b
+
+    try:
+        restart_b.grid_forget()
+        stop_b.grid_forget()
+    except NameError:
+        pass
+
+    pygame.mixer.init()
+    # mid_file = piece.file_path
+    try:
+        pygame.mixer.music.load("rock_to_class.mid")
+        # print "MIDI file %s loaded!" % music_file
+    except pygame.error:
+        print ("File %s not found! (%s)" % ("rock_to_class.mid", pygame.get_error()))
+        return
+    restart_b = Tkinter.Button(root, text="Play", command=restart)
+    stop_b = Tkinter.Button(root, text="Stop", command=stop)
+
+    restart_b.grid()
+    stop_b.grid()
+
+
+def show_controls():
+    # global play
+    global restart_b
+    global stop_b
+    pygame.mixer.init()
+    mid_file = piece.file_path
+    try:
+        pygame.mixer.music.load(mid_file)
+        # print "MIDI file %s loaded!" % music_file
+    except pygame.error:
+        print ("File %s not found! (%s)" % (mid_file, pygame.get_error()))
+        return
+
+    restart_b = Tkinter.Button(root, text="Play", command=restart)
+    stop_b = Tkinter.Button(root, text="Stop", command=stop)
+
+    restart_b.grid()
+    stop_b.grid()
+
+    play.grid_forget()
+    restart()
+    # play_mid()
+
+
+def restart():
+    pygame.mixer.music.play()
+    global restart_b
+    restart_b.grid_forget()
+    stop_b.grid()
+
+
+def stop():
+    pygame.mixer.music.stop()
+    global stop_b
+    stop_b.grid_forget()
+    restart_b.grid()
+
+
+# GUI
 root = Tkinter.Tk()
 root.title("Music Minion")
-# piece1 = Piece("Music/pass1.mid")
-# piece1 = Piece(file_path)
-load_piece = Tkinter.Button(root, text="Load a Piece", command=load)
-load_piece.pack()
+root.geometry("400x400")
+root.lift()
+
+
+load_piece = Tkinter.Button(root, text=" \nLoad a Piece\n ", command=load, width=20)
+load_piece.grid(padx=90, ipady=20)
 root.mainloop()
 
     # file_path = tkFileDialog.askopenfilename()
