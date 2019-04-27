@@ -1,7 +1,13 @@
 import midi
 import Tkinter
+from Tkinter import *
 import tkFileDialog
 import pygame
+import pygame.midi
+from pygame.locals import *
+from ttk import *
+import os
+import re
 
 class_inst = {
     "Acoustic Grand Piano": 1,
@@ -207,8 +213,6 @@ class Piece:
         do_trim = False
         key_accumulator = [0] * 12
         low_note_accumulator = [0] * 12
-        first_note_tick = True
-        given_key_mode = [-1] * 2
         denominator = 0
         numerator = 0
 
@@ -241,12 +245,11 @@ class Piece:
                         self.waltz = True
 
                 if str(type(j)) == "<class 'midi.events.KeySignatureEvent'>":
-                    print ("Key given")
-                    print j
-
-                if str(type(j)) == "<class 'midi.events.NoteOffEvent'>" or (
-                        str(type(j)) == "<class 'midi.events.NoteOnEvent'>" and j.data[1] == 0):
+                    # print ("Key given")
                     # print j
+                    pass
+
+                if str(type(j)) == "<class 'midi.events.NoteOffEvent'>" or (str(type(j)) == "<class 'midi.events.NoteOnEvent'>" and j.data[1] == 0):
                     current_tick += j.tick
                     # print ("current_tick: " + str(current_tick))
                 if str(type(j)) == "<class 'midi.events.NoteOnEvent'>" and j.data[1] != 0:
@@ -270,7 +273,7 @@ class Piece:
                             current_note += 1
 
                         if do_trim and current_tick > break_point:
-                            print ("breaking . . .")
+                            # print ("breaking . . .")
                             break
 
                         key_accumulator[j.data[0] % 12] += 1
@@ -294,10 +297,10 @@ class Piece:
 
         # done looping through pattern
 
-        print(track_pitch_ave)
-        print ("First Notes")
-        for n in first_notes_by_track:
-            print n
+        # print(track_pitch_ave)
+        # print ("First Notes")
+        # for n in first_notes_by_track:
+            # print n
 
         # for n, p in enumerate(track_pitch_ave):
         #     print (n)
@@ -320,30 +323,30 @@ class Piece:
                 first_track_pitch_ave.append(sum(first_temp_ave) / len(first_temp_ave))
             else:
                 first_track_pitch_ave.append(0)
-        print ("First tracks pitch ave")
-        print (first_track_pitch_ave)
+        # print ("First tracks pitch ave")
+        # print (first_track_pitch_ave)
 
         low_track = 0
         temp_ave = 128
 
         for n, p in enumerate(first_track_pitch_ave):
-            print (n)
-            print (p)
+            # print (n)
+            # print (p)
             # print ("temp_ave: " + str(temp_ave) + " p: " + str(p))
             if temp_ave > p != 0:
                 # print ("update temp_ave")
                 temp_ave = p
                 low_track = n
-        print ("Low track: " + str(low_track))
-        print (first_notes_by_track[low_track])
+        # print ("Low track: " + str(low_track))
+        # print (first_notes_by_track[low_track])
 
-        print ("Counting first low notes")
+        # print ("Counting first low notes")
         for n, p in enumerate(first_notes_by_track[low_track]):
-            print n
-            print p
+            # print n
+            # print p
             low_note_accumulator[p[0] % 12] += 1
-        print ("First low notes ")
-        print(low_note_accumulator)
+        # print ("First low notes ")
+        # print(low_note_accumulator)
         first_bottom_key = low_note_accumulator.index(max(low_note_accumulator))
 
         # vote tonic
@@ -374,11 +377,11 @@ class Piece:
             elif v > fourth[1]:
                 fourth = [i, v]
 
-        print("Most frequent notes")
-        print(first)
-        print(second)
-        print(third)
-        print(fourth)
+        # print("Most frequent notes")
+        # print(first)
+        # print(second)
+        # print(third)
+        # print(fourth)
 
         # vote tonic
         key_votes[2] = first[0]
@@ -391,19 +394,19 @@ class Piece:
         # checking for tonic/dom relationship in case tonic is not the most frequent note
         if abs(first[1] - second[1]) <= first[1] * 0.25 and first[0] == second_dom:
             tonic = second
-            print("Second")
+            # print("Second")
         elif second[0] == first_dom or third[0] == first_dom or fourth[0] == first_dom:
             tonic = first
-            print ("First")
+            # print ("First")
         elif first[0] == second_dom or third[0] == second_dom or fourth[0] == second_dom:
             tonic = second
-            print ("Second")
+            # print ("Second")
         elif first[0] == third_dom or second[0] == third_dom or fourth[0] == third_dom:
             tonic = third
-            print ("Third")
+            # print ("Third")
         else:
             tonic = first
-            print ("First2")
+            # print ("First2")
         # vote tonic
         key_votes[3] = tonic[0]
 
@@ -425,8 +428,8 @@ class Piece:
         # vote key
         key_votes[1] = low_last_note % 12
 
-        print ("votes")
-        print(key_votes)
+        # print ("votes")
+        # print(key_votes)
 
         # look for tonic-dom pattern in votes
 
@@ -436,13 +439,13 @@ class Piece:
             if i >= 0:
                 for j in vote_pattern:
                     if j[0] == i:
-                        print("3")
+                        # print("3")
                         j[1] += 1
                         found = True
                 if not found:
                     vote_pattern.append([i, 1])
-        print ("vote_pattern")
-        print (vote_pattern)
+        # print ("vote_pattern")
+        # print (vote_pattern)
 
         # need to also consider 1/3 splits?
         pat_tonic = -1
@@ -459,12 +462,12 @@ class Piece:
 
         # pattern weight
         if pat_tonic >= 0:
-            print("pat tonic")
+            # print("pat tonic")
             votes_by_key[pat_tonic] += 1
 
-        print("Votes by key")
+        # print("Votes by key")
 
-        print(votes_by_key)
+        # print(votes_by_key)
 
         #  . . . and the result
 
@@ -481,19 +484,20 @@ class Piece:
         if len(high_votes) == 1:
             tonic[0] = high_votes[0]
         else:
+            print ("Multiple high votes")
             tonic[0] = high_votes[0]
 
-        print(tonic[0])
+        # print(tonic[0])
 
         # looking for mode based on tonic:
 
         # checking for pentatonic modes:
-        print ("Penta section")
+        # print ("Penta section")
         penta = False
-        print("Total notes: " + str(self.tot_notes))
+        # print("Total notes: " + str(self.tot_notes))
         note_num_ave = self.tot_notes / 12
-        print("Total notes: " + str(self.tot_notes))
-        print("Ave is " + str(note_num_ave))
+        # print("Total notes: " + str(self.tot_notes))
+        # print("Ave is " + str(note_num_ave))
         split_freq = note_num_ave - note_num_ave * 0.7
 
         # pitch_numbers = sorted(key_accumulator)
@@ -522,15 +526,17 @@ class Piece:
 
         # check melody
 
-        print (key_accumulator)
-        print (note_num_ave)
-        print (split_freq)
-        print (penta)
+        # print (key_accumulator)
+        # print (note_num_ave)
+        # print (split_freq)
+        # print (penta)
 
         if key_accumulator[(tonic[0] + 3) % 12] > key_accumulator[(tonic[0] + 4) % 12]:
             self.mode = "minor"
             if penta:
                 self.mode = "minor pentatonic"
+            elif abs(key_accumulator[(tonic[0] + 7) % 12] - (key_accumulator[(tonic[0] + 6) % 12])) < (key_accumulator[(tonic[0] + 7) % 12] * 0.7):
+                self.mode = "minor blues"
             elif key_accumulator[(tonic[0] + 1) % 12] > (key_accumulator[(tonic[0] + 2) % 12]) * 2:
                 self.mode = "Phrygian"
             elif key_accumulator[(tonic[0] + 9) % 12] > (key_accumulator[(tonic[0] + 8) % 12]) * 2:
@@ -554,101 +560,327 @@ class Piece:
             for j in i:
                 if str(type(j)) == "<class 'midi.events.TimeSignatureEvent'>":
                     event_sigs.append([j.data[0], 2 ** j.data[1], j.tick])
-        print (event_sigs)
+        # print (event_sigs)
 
         if len(event_sigs) > 1 and self.first_tick >= event_sigs[1][2]:
-            print ("empty sig")
-            print(self.first_tick)
+            # print ("empty sig")
+            # print(self.first_tick)
             self.time_sig = event_sigs[1]
-        else:
+        elif len(event_sigs)>0:
             self.time_sig = event_sigs[0]
-
+        else:
+            self.time_sig = [4,4,0]
         if self.waltz:
             self.time_sig = [3, 4]
 
+        # print("Printing Key Frequencies Chart:")
+
+        n = max(key_accumulator)
+        while n > 0:
+            prnt = [" "] * 12
+            for c in range(12):
+                if key_accumulator[(tonic[0] + c) % 12] >= n:
+                    prnt[c] = "*"
+            # print("|"+str(prnt[0])+"|"+str(prnt[1])+"|"+str(prnt[2])+"|"+str(prnt[3])+"|"+str(prnt[4])+"|"+str(prnt[5])+"|"+str(prnt[6])+"|"+str(prnt[7])+"|"+str(prnt[8])+"|"+str(prnt[9])+"|"+str(prnt[10])+"|"+str(prnt[11])+"|")
+            n = n-(max(key_accumulator)/10)
+
+
         # need to fix/get rid of the rest of this function
 
-        note_length = 0  # in ticks, including any trailing silence
-        note_lengths = []
-        start_gaps = []
-
-        for i in pattern:
-            start_gap = 0
-            for j in i:
-                if str(j).startswith("midi.Note"):
-                    if str(j).startswith("midi.NoteOn") and j.data[1] > 0:
-                        if len(note_lengths) == 0:
-                            start_gap = j.tick
-                        if note_length > 0:
-                            note_length += j.tick
-                            note_lengths.append(note_length)
-                            note_length = 0
-                    else:
-                        note_length += j.tick
-
-            start_gaps.append(start_gap)
-
-        note_lengths.append(note_length)
-
-        note_length_count = {}
-        for i in note_lengths:
-            # print (i)
-            if i in note_length_count:
-                note_length_count[i] += 1
-            else:
-                note_length_count[i] = 1
-        # print ("out")
-        high_count_note_length = max(note_length_count, key=note_length_count.get)
-
-        # print "high", high_count_note_length
-
-        if res + (res * 0.1) > high_count_note_length > res - (res * 0.1):
-            self.beat_in_ticks = res
-            denominator = 4
-        elif res / 2 + (res / 2 * 0.1) > high_count_note_length > res / 2 - (res / 2 * 0.1):
-            self.beat_in_ticks = res / 2
-            denominator = 8
-        elif res * 2 + (res * 2 * 0.1) > high_count_note_length > res * 2 - (res * 2 * 0.1):
-            self.beat_in_ticks = res * 2
-            denominator = 2
-        elif res / 4 + (res / 4 * 0.1) > high_count_note_length > res / 4 - (res / 4 * 0.1):
-            self.beat_in_ticks = res / 4
-            denominator = 16
-        elif res / 8 + (res / 8 * 0.1) > high_count_note_length > res / 8 - (res / 8 * 0.1):
-            self.beat_in_ticks = res / 8
-            denominator = 32
-
-        # print "*****************"
-        # print (denominator)
-
-        long_note = 0
-        for x in note_length_count:
-            if x > long_note:
-                long_note = x
-        if long_note != 0 and self.beat_in_ticks != 0:
-            numerator = long_note / self.beat_in_ticks
-        # print (numerator)
-
-        # print "checkpoint 1"
-        while numerator % 2 == 0 and denominator % 2 == 0 and numerator != 0 and denominator != 0:
-            print numerator, denominator
-            numerator = numerator / 2
-            denominator = denominator / 2
-        # print "checkpoint 2"
-        while numerator % 2 == 0 and numerator != 0:
-            numerator = numerator / 2
-        # print "checkpoint 3"
-        while numerator % 3 == 0 and numerator != 0:
-            numerator = numerator / 3
-        # print numerator, '/', denominator
-        print("FILE:")
-        print(self.file_path)
-        print("*************************")
-        print(self.key_sig + " " + self.mode)
-        print(str(self.time_sig[0]) + "/" + str(self.time_sig[1]) + " time")
-        print("*************************")
+        # note_length = 0  # in ticks, including any trailing silence
+        # note_lengths = []
+        # start_gaps = []
+        #
+        # for i in pattern:
+        #     start_gap = 0
+        #     for j in i:
+        #         if str(j).startswith("midi.Note"):
+        #             if str(j).startswith("midi.NoteOn") and j.data[1] > 0:
+        #                 if len(note_lengths) == 0:
+        #                     start_gap = j.tick
+        #                 if note_length > 0:
+        #                     note_length += j.tick
+        #                     note_lengths.append(note_length)
+        #                     note_length = 0
+        #             else:
+        #                 note_length += j.tick
+        #
+        #     start_gaps.append(start_gap)
+        #
+        # note_lengths.append(note_length)
+        #
+        # note_length_count = {}
+        # for i in note_lengths:
+        #     # print (i)
+        #     if i in note_length_count:
+        #         note_length_count[i] += 1
+        #     else:
+        #         note_length_count[i] = 1
+        # # print ("out")
+        # high_count_note_length = max(note_length_count, key=note_length_count.get)
+        #
+        # # print "high", high_count_note_length
+        #
+        # if res + (res * 0.1) > high_count_note_length > res - (res * 0.1):
+        #     self.beat_in_ticks = res
+        #     denominator = 4
+        # elif res / 2 + (res / 2 * 0.1) > high_count_note_length > res / 2 - (res / 2 * 0.1):
+        #     self.beat_in_ticks = res / 2
+        #     denominator = 8
+        # elif res * 2 + (res * 2 * 0.1) > high_count_note_length > res * 2 - (res * 2 * 0.1):
+        #     self.beat_in_ticks = res * 2
+        #     denominator = 2
+        # elif res / 4 + (res / 4 * 0.1) > high_count_note_length > res / 4 - (res / 4 * 0.1):
+        #     self.beat_in_ticks = res / 4
+        #     denominator = 16
+        # elif res / 8 + (res / 8 * 0.1) > high_count_note_length > res / 8 - (res / 8 * 0.1):
+        #     self.beat_in_ticks = res / 8
+        #     denominator = 32
+        #
+        # # print "*****************"
+        # # print (denominator)
+        #
+        # long_note = 0
+        # for x in note_length_count:
+        #     if x > long_note:
+        #         long_note = x
+        # if long_note != 0 and self.beat_in_ticks != 0:
+        #     numerator = long_note / self.beat_in_ticks
+        # # print (numerator)
+        #
+        # # print "checkpoint 1"
+        # while numerator % 2 == 0 and denominator % 2 == 0 and numerator != 0 and denominator != 0:
+        #     print numerator, denominator
+        #     numerator = numerator / 2
+        #     denominator = denominator / 2
+        # # print "checkpoint 2"
+        # while numerator % 2 == 0 and numerator != 0:
+        #     numerator = numerator / 2
+        # # print "checkpoint 3"
+        # while numerator % 3 == 0 and numerator != 0:
+        #     numerator = numerator / 3
+        # # print numerator, '/', denominator
+        # print("FILE:")
+        # print(self.file_path)
+        # print("*************************")
+        # print(self.key_sig + " " + self.mode)
+        # print(str(self.time_sig[0]) + "/" + str(self.time_sig[1]) + " time")
+        # print("*************************")
 
         show_sigs()
+
+    def even_rhythm(self, pat, small):
+
+        new_pat = pat
+        q = self.pat.resolution
+        h = 2 * q
+        w = 4 * q
+
+        e = s = t = x = o = -1
+
+        if q % 2 == 0:
+            e = q/2
+        else:
+            print ("Help!  This piece is too weird!")
+
+        if e % 2 == 0:
+            s = e/2
+        if s % 2 == 0:
+            t = s/2
+        if t % 2 == 0:
+            x = t/2
+        if x % 2 == 0:
+            o = x/2
+
+        notes_vals = [w, h, q, e, s, t, x, o]
+
+        small_val = 0
+
+        for c, i in enumerate(notes_vals):
+            print("C: " + str(c) + ", 2^c: " + str(2**c) + "small: " + str(small))
+            if i != -1 and 2**c <= small:
+                small_val = i
+                print (small_val)
+            else:
+                break
+
+
+        print ("w: " + str(w) + "  h: " + str(h) + "  q: "
+               + str(q) + "  e: " + str(e) + "  s: " + str(s) + "  t: " + str(t) + "  x: " + str(x))
+        # for c, i in enumerate(self.pat):
+        #     for j in i:
+        #         print(str(i))
+
+        changes = []
+
+        print ("Small val is: " + str(small_val))
+        for i in new_pat:
+            current_tick = 0
+            for j in i:
+                js = str(j)
+                if "tick" in str(j):
+                    current_tick += j.tick
+                    print("current tick: " + str(current_tick))
+                    if "NoteOnEvent" in js or "NoteOffEvent" in js:
+                        if "NoteOnEvent" in js and j.data[1] > 0:
+                            # print("Note On")
+                            if current_tick % small_val != 0:
+                                print("TRIGGERED: Current_tick is " + str(current_tick) + ", mod is " + str(current_tick%small_val))
+                                if j.tick > current_tick % small_val:
+                                    print("j.tick was " + str(j.tick))
+                                    j.tick = j.tick - (current_tick % small_val)
+                                    print("j.tick is now " + str(j.tick))
+                                else:
+                                    print("j.tick was " + str(j.tick))
+                                    j.tick = 0
+                                    print("j.tick is now " + str(j.tick))
+        return new_pat
+
+    def find_time(self):
+        track_ticks = []
+        current_tick = 0
+        for c, i in enumerate(self.pat):
+            current_tick = 0
+            for j in i:
+                if "tick" in str(j):
+                    current_tick += j.tick
+                track_ticks.append(current_tick)
+        ticks = [0]*max(track_ticks)
+        for c, i in enumerate(self.pat):
+            current_tick = 0
+            for j in i:
+                if "tick" in str(j):
+                    current_tick += j.tick
+                if "NoteOnEvent" in str(j) and j.data[1] > 0:
+                    ticks[current_tick] += j.data[1]
+        for c, i in enumerate(ticks):
+            if i>0:
+                print("Tracks[" + str(c) + "] is " + str(i))
+
+    def class_to_rock(self):
+        new_pat = self.pat
+        for c, i in enumerate(new_pat):
+            for j in i:
+                # print(str(j))
+                if str(type(j)) == "<class 'midi.events.NoteOnEvent'>" and j.data[1] != 0:  # take out unpitched
+                    if j.channel == 9:
+                        j.data[1] = 0
+                elif "ProgramChange" in str(j):
+                    print("ProgramChange")
+                    if j.data in class_inst.values():
+                        print ("found inst")
+                        # pass
+                    else:
+                        if j.data[0] < 25:
+                            j.data[0] = 1
+                        elif j.data[0] < 57:
+                            j.data[0] = 50
+                            is_strings = True
+                        elif j.data[0] < 81:
+                            j.data[0] = 61
+                        else:
+                            j.data[0] = 50
+                            is_strings = True
+
+
+    def melody_track(self):
+        notes = []
+        tracks = [] #  for each track, true/false "are there any notes", then if true:  highest, lowest, range, ave
+        for c, i in enumerate(self.pat):
+            highest = -1
+            lowest = 128
+            pitches = []
+            current_tick = 0
+            notes.append([])
+            tracks.append([])
+            tracks[c].append(False)
+            # print("Pattern track " + str(c))
+            for j in i:
+                if "tick" in str(j):
+                    current_tick += j.tick
+                if "NoteOnEvent" in str(j) and j.channel != 9 and j.data[1] > 0:
+                    notes[c].append([j.data[0], current_tick, -1])
+                    tracks[c][0] = True
+                    pitches.append(j.data[0])
+                    if j.data[0] > highest:
+                        highest = j.data[0]
+                    if j.data[0] < lowest:
+                        lowest = j.data[0]
+                elif ("NoteOffEvent" in str(j) or ("NoteOnEvent" in str(j) and j.data[1] == 0)) and j.channel != 9:
+                    for n in reversed(notes[c]):
+                        if n[0] == j.data[0] and n[2] == -1:
+                            n[2] = current_tick
+                            break
+            # print("End of track")
+            # print(pitches)
+            if tracks[c][0]:
+                tracks[c].append(len(notes[c]))
+                tracks[c].append(highest)
+                tracks[c].append(lowest)
+                tracks[c].append(highest-lowest)
+                tracks[c].append(sum(pitches) / float(len(pitches)))
+
+        # looking at leaps, trying to skip polyphony
+        for ind, t in enumerate(notes):
+            leaps = []
+            poly = 0
+            for c, i in enumerate(t):
+
+                if c > 0:
+                    if abs(i[1] - t[c-1][1]) > self.pat.resolution/128 and abs(i[1] - t[c-1][1]) > 2:  # new note/chord
+                        leaps.append(abs(i[0]-t[c-1][0]))
+                    else:
+                        poly += 1
+            if tracks[ind][0]:
+                tracks[ind].append(sum(leaps) / float(len(leaps)))
+                tracks[ind].append(poly)
+
+        votes = [0]*len(tracks)
+
+        for c, i in enumerate(votes):
+            print ("Votes")
+            print(votes)
+            if tracks[c][0]:
+                print("Has Notes")
+                print(i)
+                if tracks[c][4] < 24:
+                    print("Small range")
+                    votes[c] = votes[c]+1
+                if tracks[c][5] > 64:
+                    print("Treble")
+                    votes[c] = votes[c]+0.5
+                if tracks[c][6] < 4:
+                    print("Small leaps")
+                    votes[c] += 1
+                    print(i)
+                    if tracks[c][6] < 2:
+                        print("Really small leaps")
+                        votes[c] += 0.5
+                        print(i)
+                if tracks[c][7] < tracks[c][1]*0.1:
+                    print("Minimal polyphony")
+                    votes[c] += 1
+
+        print("Votes")
+        print(votes)
+
+        print("Melody track index is: " + str(votes.index(max(votes))))
+
+        # for c, t in enumerate(notes):
+        #     print("Track " + str(c))
+        #     print("------------------------------------------------------")
+        #     for n in t:
+        #         print(n)
+
+        for t in tracks:
+            print (t)
+
+        # for c, t in enumerate(tracks):
+        #     if t[0]:
+        #         for n in notes[c]:
+
+
+
 
 
     def rock_to_class(self):
@@ -657,7 +889,7 @@ class Piece:
         for c, i in enumerate(new_pat):
             for j in i:
                 # print(str(j))
-                if str(type(j)) == "<class 'midi.events.NoteOnEvent'>" and j.data[1] != 0: # take out unpitched percussion
+                if str(type(j)) == "<class 'midi.events.NoteOnEvent'>" and j.data[1] != 0:  # take out unpitched
                     if j.channel == 9:
                         j.data[1] = 0
                 elif "ProgramChange" in str(j):
@@ -688,34 +920,75 @@ class Piece:
             print ("Call mode change")
             new_pat = self.change_mode("minor", new_pat)
 
+        new_pat = self.even_rhythm(new_pat, 8)
+
         midi.write_midifile("rock_to_class.mid", new_pat)
         play_class()
 
+    def print_pat(self):
+        for i in self.pat:
+            print(str(i))
+
 
 first_load = True
+play_in_piece = False
+testing = False
 
 
 def load():
     global first_load
+    global testing
+    global test_file
     global piece
     global sig
     global play
     global stop_b
     global stop
     global rock_class
+    global print_pat
+    global restart_b
+    global show_sigs_l
+    global play_in_piece
 
     try:
         del piece
-        sig.destroy()
-        play.destroy()
-        rock_class.destroy()
         first_load = False
     except NameError:
         first_load = True
     if not first_load:
-        stop()
-        restart_b.grid_forget()
-    file_path = tkFileDialog.askopenfilename()
+        try:
+            stop()
+        except:
+            pass
+        try:
+            restart_b.grid_forget()
+        except NameError:
+            pass
+        sig.destroy()
+        play.destroy()
+        rock_class.destroy()
+        try:
+            stop_b.destroy()
+        except NameError:
+            pass
+        try:
+            restart_b.destroy()
+        except NameError:
+            pass
+        try:
+            show_sigs_l.destroy()
+        except NameError:
+            pass
+
+    if play_in_piece:
+        file_path = "play_in.mid"
+    elif testing:
+        print ("Test file")
+        print (test_file)
+        file_path = test_file
+    else:
+        file_path = tkFileDialog.askopenfilename()
+        play_in_piece = False
     piece = Piece(file_path)
     play = Tkinter.Button(root, text="Play the MIDI!", command=show_controls)
     sig = Tkinter.Button(root, text="Find key and time signatures", command=piece.signatures)
@@ -724,17 +997,82 @@ def load():
     sig.grid()
     play.grid()
     rock_class.grid()
-        # change_mode.grid()
-    # show_controls()
+
     first_load = False
+
+
+def play_in():
+
+    global play_in_piece
+
+    pygame.init()
+    pygame.midi.init()
+    pygame.fastevent.init()
+
+    pat = midi.Pattern()
+    track = midi.Track()
+    pat.append(track)
+
+    event_get = pygame.fastevent.get
+    input_id = pygame.midi.get_default_input_id()
+
+    if input_id == -1:
+        print ("could not find midi device!")
+        return
+
+    i = pygame.midi.Input(input_id)
+
+    prev_event = []
+
+    going = True
+
+    while going:
+
+        events = event_get()
+        for e in events:
+            if e.type in [QUIT]:
+                going = False
+            if e.type in [KEYDOWN]:
+                going = False
+            if e.type in [MOUSEBUTTONDOWN]:
+                going = False
+
+        if i.poll():
+            midi_events = i.read(10)
+
+            print "midi event: " + str(midi_events)
+            print(len(prev_event))
+            if len(prev_event)>0:
+                tick = (midi_events[0][1] - prev_event[0][1])/2
+            else:
+                tick = 0
+
+            ev = midi.NoteOnEvent(tick=tick, velocity=midi_events[0][0][2], pitch=midi_events[0][0][1])
+            print(ev)
+            track.append(ev)
+
+            prev_event = midi_events
+
+    eot = midi.EndOfTrackEvent(tick=1)
+    track.append(eot)
+
+    midi.write_midifile("play_in.mid", pat)
+    play_in_piece = True
+    load()
+
+    print "exit on press"
+    i.close()
+    del i
+    pygame.midi.quit()
 
 
 def show_sigs():
     global show_sigs_l
-    sig_text = "Looks like this piece is in " + piece.key_sig + " " + piece.mode + " and " + str(piece.time_sig[0]) \
+    sig_text = "Looks like this piece is in:\n" + piece.key_sig + " " + piece.mode + "\n" + str(piece.time_sig[0]) \
                + "/" + str(piece.time_sig[1]) + " time!"
     show_sigs_l = Tkinter.Label(root, text=sig_text)
     show_sigs_l.grid()
+
 
 def play_class():
     global restart_b
@@ -765,7 +1103,6 @@ def show_controls():
     # global play
     global restart_b
     global stop_b
-    pygame.mixer.init()
     mid_file = piece.file_path
     try:
         pygame.mixer.music.load(mid_file)
@@ -798,30 +1135,90 @@ def stop():
     stop_b.grid_forget()
     restart_b.grid()
 
+test_file = ""
+
+
+def test():
+    count = 0
+    tonic = 0
+    mode = 0
+    time = 0
+    all = 0
+    global testing
+    global test_file
+    testing = True
+    directory = "Project_Test_Midis"
+    for filename in os.listdir(directory):
+        if filename.endswith(".mid"):
+            print("*****************************************************************************************")
+            count += 1
+            key = re.findall(r"[A-G][b#]*_[mMDdLlPp][A-Za-z]+", str(filename))
+            time_sig = re.findall(r"[1-9]_[1-9]", str(filename))
+            test_file = directory+"/"+filename
+
+            load()
+            piece.signatures()
+            print ("Key")
+            print(key)
+            print ("Predicted key")
+            print (piece.key_sig+"_"+piece.mode)
+            print ("Time")
+            print (time_sig)
+            print ("Predicted Time")
+            print (piece.time_sig)
+            is_all = 0
+            if len(key) > 0 and len(time_sig) > 0:
+                if key[0].upper().startswith((piece.key_sig + "_").upper()):
+                    tonic += 1
+                    is_all += 1
+                if key[0].upper().endswith(("_" + piece.mode).upper()):
+                    mode += 1
+                    is_all += 1
+                if time_sig[0].upper() == (str(piece.time_sig[0]) + "_" + str(piece.time_sig[1])).upper():
+                    time += 1
+                    is_all += 1
+                if is_all == 3:
+                    all += 1
+                else:
+                    print ("Still not perfect :(")
+            else:
+                print("Learn better regex!")
+        print("\n")
+    print (tonic)
+    print (mode)
+    print (time)
+    print (all)
+    print (count)
+    print ("tonic")
+    print (tonic/float(count))
+    print ("mode")
+    print (mode/float(count))
+    print ("time")
+    print (time/float(count))
+    print ("all")
+    print (all/float(count))
+    testing = False
+
 
 # GUI
+pygame.mixer.init()
+
 root = Tkinter.Tk()
-root.title("Music Minion")
-root.geometry("400x400")
+root.title("MIDI Minion")
+root.geometry("300x500")
 root.lift()
 
+welcome = Tkinter.Label(root, text="Welcome to MIDI Minion!\n\nHow would you like to start?")
+welcome.grid(padx=45, ipady=30)
 
-load_piece = Tkinter.Button(root, text=" \nLoad a Piece\n ", command=load, width=20)
-load_piece.grid(padx=90, ipady=20)
+load_piece = Tkinter.Button(root, text="Load a Piece", command=load, width=20)
+load_piece.grid(padx=45, pady=10, row=2)
+
+play_in = Tkinter.Button(root, text="Record MIDI", command=play_in, width=20)
+play_in.grid(padx=45, pady=10, row=3)
+play_in.configure(background ='#e8d9c4')
+
+test = Tkinter.Button(root, text="TEST", command=test, width=20)
+test.grid()
+
 root.mainloop()
-
-    # file_path = tkFileDialog.askopenfilename()
-    #
-    # test1 = Piece(file_path)
-    # test1.signatures()
-    # print(test1.key_sig + " " + test1.mode)
-    #
-    # #test1.change_mode("minor")
-    # print(test1.key_sig + " " + test1.mode)
-    # print(str(test1.time_sig[0]) + "/" + str(test1.time_sig[1]) + " time")
-    #
-    #
-    # print("Done")
-
-
-# main()
