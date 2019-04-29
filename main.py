@@ -1,11 +1,9 @@
 import midi
 import Tkinter
-from Tkinter import *
 import tkFileDialog
 import pygame
 import pygame.midi
 from pygame.locals import *
-from ttk import *
 import os
 import re
 
@@ -19,7 +17,6 @@ class_inst = {
     "Oboe": 69,
     "Flute": 74
 }
-
 
 # for keyboard play-in/playback:
 
@@ -46,7 +43,7 @@ key_map = {
     '>': 51,
     '?': 53,
 
-    'a': 48, #C3 and up
+    'a': 48,  # C3 and up
     's': 50,
     'd': 52,
     'f': 53,
@@ -124,6 +121,7 @@ key_map = {
     '_': 90,  # F#6
     '+': 92,  # G#6
 }
+
 
 class Piece:
     key_sig = "unknown"
@@ -206,7 +204,7 @@ class Piece:
         self.waltz = False
 
         key_votes = [-1] * 4  # first low note, last low note, most frequent, most frequent with dom
-        vote_weights = [0.5, 1.2, 0.8, 1, 1]
+        vote_weights = [0.5, 1.2, 0.8, 1]
         pattern = self.pat
         res = pattern.resolution
         break_point = res * 10
@@ -249,7 +247,8 @@ class Piece:
                     # print j
                     pass
 
-                if str(type(j)) == "<class 'midi.events.NoteOffEvent'>" or (str(type(j)) == "<class 'midi.events.NoteOnEvent'>" and j.data[1] == 0):
+                if str(type(j)) == "<class 'midi.events.NoteOffEvent'>" or (
+                        str(type(j)) == "<class 'midi.events.NoteOnEvent'>" and j.data[1] == 0):
                     current_tick += j.tick
                     # print ("current_tick: " + str(current_tick))
                 if str(type(j)) == "<class 'midi.events.NoteOnEvent'>" and j.data[1] != 0:
@@ -300,7 +299,7 @@ class Piece:
         # print(track_pitch_ave)
         # print ("First Notes")
         # for n in first_notes_by_track:
-            # print n
+        # print n
 
         # for n, p in enumerate(track_pitch_ave):
         #     print (n)
@@ -352,8 +351,8 @@ class Piece:
         # vote tonic
         key_votes[0] = first_bottom_key
 
-        print (first_bottom_key)
-        print self.keys[first_bottom_key]
+        # print (first_bottom_key)
+        # print self.keys[first_bottom_key]
 
         # find frequent notes
         first = [0, 0]
@@ -517,12 +516,18 @@ class Piece:
         # if large_gap[1] < 7:
         #     penta = True
 
-        main_pitch_count = 0
+        main_pitch_count = []
         for c, i in enumerate(key_accumulator):
             if i > split_freq:
-                main_pitch_count += 1
-        if main_pitch_count < 6:
+                main_pitch_count.append(c)
+        if len(main_pitch_count) < 6:
             penta = True
+            for i, v in enumerate(main_pitch_count):
+                if i == 0:
+                    pass
+                if i > 0:
+                    if v == main_pitch_count[i - 1] + 1:
+                        penta = False
 
         # check melody
 
@@ -531,11 +536,21 @@ class Piece:
         # print (split_freq)
         # print (penta)
 
-        if key_accumulator[(tonic[0] + 3) % 12] > key_accumulator[(tonic[0] + 4) % 12]:
+        print (vote_weights)
+        print (key_votes)
+        print (key_accumulator)
+
+        if abs(key_accumulator[(tonic[0] + 3) % 12] - key_accumulator[(tonic[0] + 4) % 12]) < \
+                (key_accumulator[(tonic[0] + 3) % 12] + key_accumulator[(tonic[0] + 4) % 12]) * 0.2 and \
+                max(key_accumulator[(tonic[0] + 3) % 12], key_accumulator[(tonic[0] + 4) % 12]) > \
+                key_accumulator[(tonic[0] + 7) % 12] * 0.5:
+            self.mode = "Major blues"
+        elif key_accumulator[(tonic[0] + 3) % 12] > key_accumulator[(tonic[0] + 4) % 12]:
             self.mode = "minor"
             if penta:
                 self.mode = "minor pentatonic"
-            elif abs(key_accumulator[(tonic[0] + 7) % 12] - (key_accumulator[(tonic[0] + 6) % 12])) < (key_accumulator[(tonic[0] + 7) % 12] * 0.7):
+            elif abs(key_accumulator[(tonic[0] + 7) % 12] - (key_accumulator[(tonic[0] + 6) % 12])) < (
+                    key_accumulator[(tonic[0] + 7) % 12] * 0.5):
                 self.mode = "minor blues"
             elif key_accumulator[(tonic[0] + 1) % 12] > (key_accumulator[(tonic[0] + 2) % 12]) * 2:
                 self.mode = "Phrygian"
@@ -566,10 +581,10 @@ class Piece:
             # print ("empty sig")
             # print(self.first_tick)
             self.time_sig = event_sigs[1]
-        elif len(event_sigs)>0:
+        elif len(event_sigs) > 0:
             self.time_sig = event_sigs[0]
         else:
-            self.time_sig = [4,4,0]
+            self.time_sig = [4, 4, 0]
         if self.waltz:
             self.time_sig = [3, 4]
 
@@ -581,9 +596,10 @@ class Piece:
             for c in range(12):
                 if key_accumulator[(tonic[0] + c) % 12] >= n:
                     prnt[c] = "*"
-            # print("|"+str(prnt[0])+"|"+str(prnt[1])+"|"+str(prnt[2])+"|"+str(prnt[3])+"|"+str(prnt[4])+"|"+str(prnt[5])+"|"+str(prnt[6])+"|"+str(prnt[7])+"|"+str(prnt[8])+"|"+str(prnt[9])+"|"+str(prnt[10])+"|"+str(prnt[11])+"|")
-            n = n-(max(key_accumulator)/10)
-
+            print("|" + str(prnt[0]) + "|" + str(prnt[1]) + "|" + str(prnt[2]) + "|" + str(prnt[3]) + "|" + str(
+                prnt[4]) + "|" + str(prnt[5]) + "|" + str(prnt[6]) + "|" + str(prnt[7]) + "|" + str(
+                prnt[8]) + "|" + str(prnt[9]) + "|" + str(prnt[10]) + "|" + str(prnt[11]) + "|")
+            n = n - (max(key_accumulator) / 10)
 
         # need to fix/get rid of the rest of this function
 
@@ -679,31 +695,30 @@ class Piece:
         e = s = t = x = o = -1
 
         if q % 2 == 0:
-            e = q/2
+            e = q / 2
         else:
             print ("Help!  This piece is too weird!")
 
         if e % 2 == 0:
-            s = e/2
+            s = e / 2
         if s % 2 == 0:
-            t = s/2
+            t = s / 2
         if t % 2 == 0:
-            x = t/2
+            x = t / 2
         if x % 2 == 0:
-            o = x/2
+            o = x / 2
 
         notes_vals = [w, h, q, e, s, t, x, o]
 
         small_val = 0
 
         for c, i in enumerate(notes_vals):
-            print("C: " + str(c) + ", 2^c: " + str(2**c) + "small: " + str(small))
-            if i != -1 and 2**c <= small:
+            print("C: " + str(c) + ", 2^c: " + str(2 ** c) + "small: " + str(small))
+            if i != -1 and 2 ** c <= small:
                 small_val = i
                 print (small_val)
             else:
                 break
-
 
         print ("w: " + str(w) + "  h: " + str(h) + "  q: "
                + str(q) + "  e: " + str(e) + "  s: " + str(s) + "  t: " + str(t) + "  x: " + str(x))
@@ -725,7 +740,8 @@ class Piece:
                         if "NoteOnEvent" in js and j.data[1] > 0:
                             # print("Note On")
                             if current_tick % small_val != 0:
-                                print("TRIGGERED: Current_tick is " + str(current_tick) + ", mod is " + str(current_tick%small_val))
+                                print("TRIGGERED: Current_tick is " + str(current_tick) + ", mod is " + str(
+                                    current_tick % small_val))
                                 if j.tick > current_tick % small_val:
                                     print("j.tick was " + str(j.tick))
                                     j.tick = j.tick - (current_tick % small_val)
@@ -745,7 +761,7 @@ class Piece:
                 if "tick" in str(j):
                     current_tick += j.tick
                 track_ticks.append(current_tick)
-        ticks = [0]*max(track_ticks)
+        ticks = [0] * max(track_ticks)
         for c, i in enumerate(self.pat):
             current_tick = 0
             for j in i:
@@ -754,7 +770,7 @@ class Piece:
                 if "NoteOnEvent" in str(j) and j.data[1] > 0:
                     ticks[current_tick] += j.data[1]
         for c, i in enumerate(ticks):
-            if i>0:
+            if i > 0:
                 print("Tracks[" + str(c) + "] is " + str(i))
 
     def class_to_rock(self):
@@ -782,10 +798,9 @@ class Piece:
                             j.data[0] = 50
                             is_strings = True
 
-
     def melody_track(self):
         notes = []
-        tracks = [] #  for each track, true/false "are there any notes", then if true:  highest, lowest, range, ave
+        tracks = []  # for each track, true/false "are there any notes", then if true:  highest, lowest, range, ave
         for c, i in enumerate(self.pat):
             highest = -1
             lowest = 128
@@ -817,7 +832,7 @@ class Piece:
                 tracks[c].append(len(notes[c]))
                 tracks[c].append(highest)
                 tracks[c].append(lowest)
-                tracks[c].append(highest-lowest)
+                tracks[c].append(highest - lowest)
                 tracks[c].append(sum(pitches) / float(len(pitches)))
 
         # looking at leaps, trying to skip polyphony
@@ -827,15 +842,17 @@ class Piece:
             for c, i in enumerate(t):
 
                 if c > 0:
-                    if abs(i[1] - t[c-1][1]) > self.pat.resolution/128 and abs(i[1] - t[c-1][1]) > 2:  # new note/chord
-                        leaps.append(abs(i[0]-t[c-1][0]))
+                    if abs(i[1] - t[c - 1][1]) > self.pat.resolution / 128 and abs(
+                            i[1] - t[c - 1][1]) > 2:  # new note/chord
+                        if abs(i[0] - t[c - 1][0]) != 0:  # not counting repeated notes
+                            leaps.append(abs(i[0] - t[c - 1][0]))
                     else:
                         poly += 1
             if tracks[ind][0]:
                 tracks[ind].append(sum(leaps) / float(len(leaps)))
                 tracks[ind].append(poly)
 
-        votes = [0]*len(tracks)
+        votes = [0] * len(tracks)
 
         for c, i in enumerate(votes):
             print ("Votes")
@@ -845,10 +862,10 @@ class Piece:
                 print(i)
                 if tracks[c][4] < 24:
                     print("Small range")
-                    votes[c] = votes[c]+1
+                    votes[c] = votes[c] + 1
                 if tracks[c][5] > 64:
                     print("Treble")
-                    votes[c] = votes[c]+0.5
+                    votes[c] = votes[c] + 0.5
                 if tracks[c][6] < 4:
                     print("Small leaps")
                     votes[c] += 1
@@ -857,7 +874,7 @@ class Piece:
                         print("Really small leaps")
                         votes[c] += 0.5
                         print(i)
-                if tracks[c][7] < tracks[c][1]*0.1:
+                if tracks[c][7] < tracks[c][1] * 0.1:
                     print("Minimal polyphony")
                     votes[c] += 1
 
@@ -878,10 +895,6 @@ class Piece:
         # for c, t in enumerate(tracks):
         #     if t[0]:
         #         for n in notes[c]:
-
-
-
-
 
     def rock_to_class(self):
         new_pat = self.pat
@@ -949,6 +962,7 @@ def load():
     global restart_b
     global show_sigs_l
     global play_in_piece
+    global function_test
 
     try:
         del piece
@@ -967,6 +981,10 @@ def load():
         sig.destroy()
         play.destroy()
         rock_class.destroy()
+        try:
+            function_test.destroy()
+        except NameError:
+            pass
         try:
             stop_b.destroy()
         except NameError:
@@ -993,16 +1011,17 @@ def load():
     play = Tkinter.Button(root, text="Play the MIDI!", command=show_controls)
     sig = Tkinter.Button(root, text="Find key and time signatures", command=piece.signatures)
     rock_class = Tkinter.Button(root, text="Classicalize this piece!", command=piece.rock_to_class)
-        # change_mode = Tkinter.Button(main, text="Change Var", command=piece1.change_mode())
+    function_test = Tkinter.Button(root, text="Where is the melody?", command=piece.melody_track)
+    # change_mode = Tkinter.Button(main, text="Change Var", command=piece1.change_mode())
     sig.grid()
     play.grid()
     rock_class.grid()
+    function_test.grid()
 
     first_load = False
 
 
 def play_in():
-
     global play_in_piece
 
     pygame.init()
@@ -1042,8 +1061,8 @@ def play_in():
 
             print "midi event: " + str(midi_events)
             print(len(prev_event))
-            if len(prev_event)>0:
-                tick = (midi_events[0][1] - prev_event[0][1])/2
+            if len(prev_event) > 0:
+                tick = (midi_events[0][1] - prev_event[0][1]) / 2
             else:
                 tick = 0
 
@@ -1135,46 +1154,130 @@ def stop():
     stop_b.grid_forget()
     restart_b.grid()
 
-test_file = ""
 
+test_file = ""
+test_dir = ""
+test_all_flag = False
+
+def test_all():
+    global test_dir
+    global test_all_flag
+    test_all_flag = True
+    test_dir = "Project_Test_Midis"
+    test()
+    test_all_flag = False
+
+def test_rock():
+    global test_all_flag
+    print (test_all_flag)
+    global test_dir
+    test_dir = "Project_Test_Midis/Rock"
+    test()
+
+def test_classical():
+    global test_dir
+    test_dir = "Project_Test_Midis/Classical"
+    test()
+
+
+def test_metal():
+    global test_dir
+    test_dir = "Project_Test_Midis/Metal"
+    test()
+
+def test_blues():
+    global test_dir
+    test_dir = "Project_Test_Midis/Blues"
+    test()
 
 def test():
     count = 0
+    with_extra = 0
     tonic = 0
     mode = 0
+    extra = 0
     time = 0
     all = 0
     global testing
     global test_file
+    global test_dir
+    global test_all_flag
+    folders = ["Rock", "Classical", "Blues", "Metal"]
     testing = True
-    directory = "Project_Test_Midis"
-    for filename in os.listdir(directory):
+    directory = test_dir
+    files = []
+    print (test_all)
+    if test_all_flag:
+        print ("Called")
+        for i in folders:
+            files += os.listdir(directory + "/" + i)
+    else:
+        files += os.listdir(directory)
+
+    for filename in files:
         if filename.endswith(".mid"):
             print("*****************************************************************************************")
             count += 1
-            key = re.findall(r"[A-G][b#]*_[mMDdLlPp][A-Za-z]+", str(filename))
-            time_sig = re.findall(r"[1-9]_[1-9]", str(filename))
-            test_file = directory+"/"+filename
+
+            # key = re.findall(r"[A-G][b#]*_[mMDdLlPp][A-Za-z]+", str(filename))
+            # time_sig = re.findall(r"[1-9]_[1-9]", str(filename))
+            data = filename.split("_")
+            if test_all_flag:
+                test_file = directory + "/" + data[0] + "/" + filename
+            else:
+                test_file = directory + "/" + filename
+
+            key = ""
+            scale = []
+            time_sig = []
+
+            for i, v in enumerate(data):
+                if i > 2 and len(time_sig) >= 2:
+                    break
+                elif i == 1:
+                    key = v
+                elif i > 1 and re.match("[A-Za-z]", v):
+                    scale.append(v.upper())
+                    if i == 3:
+                        with_extra += 1
+                elif i > 1 and re.match("[0-9]", v) and len(time_sig) < 2:
+                    time_sig.append(v)
 
             load()
             piece.signatures()
             print ("Key")
             print(key)
             print ("Predicted key")
-            print (piece.key_sig+"_"+piece.mode)
+            print (piece.key_sig)
+            print ("Mode/scale")
+            print (scale)
+            print ("Predicted mode/scale")
+            print (piece.mode.upper())
             print ("Time")
             print (time_sig)
             print ("Predicted Time")
             print (piece.time_sig)
             is_all = 0
-            if len(key) > 0 and len(time_sig) > 0:
-                if key[0].upper().startswith((piece.key_sig + "_").upper()):
+            key_mode = 0
+            scale_str = ""
+            if len(key):
+                if key == piece.key_sig:
                     tonic += 1
                     is_all += 1
-                if key[0].upper().endswith(("_" + piece.mode).upper()):
-                    mode += 1
-                    is_all += 1
-                if time_sig[0].upper() == (str(piece.time_sig[0]) + "_" + str(piece.time_sig[1])).upper():
+                if len(scale) == 2:
+                    scale_str = scale[0] + " " + scale[1]
+                    with_extra += 1
+                for i in scale:
+                    if i.upper() in piece.mode.upper():
+                        mode += 1
+                        is_all += 1
+                        if is_all == 2:
+                            key_mode += 1
+                        break
+                if len(scale) == 2 and scale_str.upper() == piece.mode.upper():
+                    extra += 1
+                    # is_all += 1
+                if str(time_sig[0]) == str(piece.time_sig[0]) and str(time_sig[1]) == str(piece.time_sig[1]):
                     time += 1
                     is_all += 1
                 if is_all == 3:
@@ -1182,21 +1285,26 @@ def test():
                 else:
                     print ("Still not perfect :(")
             else:
-                print("Learn better regex!")
+                print("Something is wrong with this filename!")
         print("\n")
     print (tonic)
     print (mode)
+    print (extra)
+    print (with_extra)
     print (time)
     print (all)
     print (count)
     print ("tonic")
-    print (tonic/float(count))
+    print (tonic / float(count))
     print ("mode")
-    print (mode/float(count))
+    print (mode / float(count))
+    if with_extra !=0:
+        print ("extra")
+        print (extra / float(with_extra))
     print ("time")
-    print (time/float(count))
+    print (time / float(count))
     print ("all")
-    print (all/float(count))
+    print (all / float(count))
     testing = False
 
 
@@ -1216,9 +1324,21 @@ load_piece.grid(padx=45, pady=10, row=2)
 
 play_in = Tkinter.Button(root, text="Record MIDI", command=play_in, width=20)
 play_in.grid(padx=45, pady=10, row=3)
-play_in.configure(background ='#e8d9c4')
+play_in.configure(background='#e8d9c4')
 
-test = Tkinter.Button(root, text="TEST", command=test, width=20)
-test.grid()
+test_b = Tkinter.Button(root, text="Test Blues", command=test_blues, width=10)
+test_b.grid()
+
+test_c = Tkinter.Button(root, text="Test Classical", command=test_classical, width=10)
+test_c.grid()
+
+test_r = Tkinter.Button(root, text="Test Rock", command=test_rock, width=10)
+test_r.grid()
+
+test_m = Tkinter.Button(root, text="Test Metal", command=test_metal, width=10)
+test_m.grid()
+
+test_a = Tkinter.Button(root, text="Test All Genres", command=test_all, width=10)
+test_a.grid()
 
 root.mainloop()
