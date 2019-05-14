@@ -1,4 +1,5 @@
 # ProjectT
 In progress
 
-MIDI file transformation tool project.  Currently very much a work in progress.
+MIDI file transformation tool project with 60-sample test dataset.
+
